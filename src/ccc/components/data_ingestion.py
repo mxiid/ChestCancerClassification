@@ -1,6 +1,7 @@
 import os
 import zipfile
 import gdown
+from pathlib import Path
 from ccc import logger
 from ccc.utils.common import get_size
 from ccc.entity.config_entity import DataIngestionConfig
@@ -13,16 +14,21 @@ class DataIngestion:
         '''Fetch data from the URL'''
 
         try:
-            dataset_url=self.config.source_URL
-            zip_download_dir=self.config.local_data_file
-            os.makedirs("artifacts/data_ingestion", exist_ok=True)
-            logger.info(f"Downloading data from {dataset_url} into file {zip_download_dir}")
+            if os.path.exists(self.config.local_data_file):
+                path_to_file = Path(self.config.local_data_file)
+                path_size = get_size(path_to_file)
+                logger.info(f"Data already exists at {path_to_file} with size {path_size}. Skipping download.")
+            else:
+                dataset_url=self.config.source_URL
+                zip_download_dir=self.config.local_data_file
+                os.makedirs("artifacts/data_ingestion", exist_ok=True)
+                logger.info(f"Downloading data from {dataset_url} into file {zip_download_dir}")
 
-            file_id = dataset_url.split("/")[-2]
-            prefix = "https://drive.google.com/uc?/export=downloadU&id="
-            gdown.download(prefix+file_id, zip_download_dir)
+                file_id = dataset_url.split("/")[-2]
+                prefix = "https://drive.google.com/uc?/export=downloadU&id="
+                gdown.download(prefix+file_id, zip_download_dir)
 
-            logger.info(f"Downloaded data from {dataset_url} into file {zip_download_dir}")
+                logger.info(f"Downloaded data from {dataset_url} into file {zip_download_dir}")
 
         except Exception as e:
             raise e
