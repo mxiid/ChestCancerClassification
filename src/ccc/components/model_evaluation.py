@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import tensorflow as tf
 import mlflow
@@ -6,6 +7,7 @@ from urllib.parse import urlparse
 from ccc.entity.config_entity import EvaluationConfig
 from ccc.utils.common import save_json
 from ccc import logger 
+from ccc.constants import MLFLOW_TRACKING_USERNAME, MLFLOW_TRACKING_PASSWORD
 
 
 class Evaluation:
@@ -48,16 +50,35 @@ class Evaluation:
         save_json(path=Path("scores.json"), data=scores)
 
     def mlflow_log(self):
+        os.environ["MLFLOW_TRACKING_USERNAME"] = MLFLOW_TRACKING_USERNAME
+        os.environ["MLFLOW_TRACKING_PASSWORD"] = MLFLOW_TRACKING_PASSWORD
+        logger.info("Starting MLflow logging")
+        mlflow.set_tracking_uri(self.config.mlflow_uri)
         mlflow.set_registry_uri(self.config.mlflow_uri)
+        logger.info(f"MLflow registry URI set to: {self.config.mlflow_uri}")
+        
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+        logger.info(f"Tracking URL type: {tracking_url_type_store}")
 
-        with mlflow.start_run():
-            mlflow.log_params(self.config.all_params)
-            mlflow.log_metrics({"loss": self.score[0], "accuracy": self.score[1]})
+        try:
+            with mlflow.start_run():
+                logger.info("MLflow run started")
+                
+                logger.info("Logging parameters")
+                mlflow.log_params(self.config.all_params)
+                
+                logger.info("Logging metrics")
+                mlflow.log_metrics({"loss": self.score[0], "accuracy": self.score[1]})
 
-            if tracking_url_type_store != "file":
-                mlflow.keras.log_model(
-                    self.model, "model", registered_model_name="VGG16Model"
-                )
-            else:
-                mlflow.keras.log_model(self.model, "model")
+                logger.info("Logging model")
+                if tracking_url_type_store != "file":
+                    mlflow.keras.log_model(
+                        self.model, "model", registered_model_name="VGG16Model"
+                    )
+                else:
+                    mlflow.keras.log_model(self.model, "model")
+                
+                logger.info("MLflow logging completed successfully")
+        except Exception as e:
+            logger.error(f"Error during MLflow logging: {str(e)}")
+            raise
