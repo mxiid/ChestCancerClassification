@@ -28,7 +28,7 @@ def trainRoute():
     os.system("dvc repro")
     return "Training completed successfully"
 
-app.route("/predict", methods=['POST'])
+@app.route("/predict", methods=['POST'])
 @cross_origin()
 def predictRoute():
     image = request.json['image']

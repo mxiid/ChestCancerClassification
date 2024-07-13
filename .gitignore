@@ -166,3 +166,5 @@ artifacts/data_ingestion/*
 research/*
 
 mlruns/*
+
+inputImage.jpg
